@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Feb 15 12:06:57 2022
+
+@author: utkusenel
+"""
+
+import pandas as pd
+import numpy as np
+from statsmodels.stats.weightstats import ztest
+import seaborn as sns
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+
+df = pd.read_excel("/Users/utkusenel/Desktop/Practice(KFC)_UTKU.xlsx")
+print(df.head())
+print(df.columns)
+
+
+pop_mean = []     # Bütün verinin ortalamalarının toplandığı yer
+pop_std_dev = []  # Bütün verinin standart sapmalarının toplandığı yer
+pop_sample_size = len(df.index)   # Bütün verinin uzunluğu
+alpha = 0.05  ## Confidence interval 
+
+
+df_calisan = df[df.GercekDurum.eq(1)]   ## Çalışanların düğme puanları
+
+df_ayrildi = df[df.GercekDurum.eq(0)]   ## Ayrılanların düğme puanları
+
+
+
+df_ayrildi.drop(['AdSoyad', 'GercekDurum'], axis=1, inplace=True)    ## Ad Soyad ve Gerçek Durum sütunlarını düşürmek amaçlı
+
+
+df_calisan.drop(['AdSoyad', 'GercekDurum'], axis=1, inplace=True)
+
+
+
+## CALCULATING MEANS AND STD DEVS OF GERCEKDURUM
+status_means = df.groupby(by="GercekDurum").mean()  ## Ayrılan ve çalışanların tüm düğmeler için ortalama puanları
+status_means = pd.DataFrame(status_means)
+print(status_means)
+
+status_std_dev = df.groupby(by="GercekDurum").std()   ## Ayrılan ve çalışanların tüm düğmeler için standart sapmaları 
+status_std_dev = pd.DataFrame(status_std_dev)
+print(status_std_dev)
+
+
+
+
+## Bütün verinin tüm düğmeler için ortalama ve standart sapmaları  
+for columns in range(1,16):  
+      df_mean = df.iloc[:,columns].mean()
+      df_std = df.iloc[:,columns].std()
+      pop_mean.append(df_mean)
+      pop_std_dev.append(df_std)
+ 
+
+
+     
+print(pop_mean)     
+     
+## Yukarıda hesaplanan ortalama ve standart sapma değerlerinin olduğu arrayler Dataframe çevrildi ve sütun isimleri eklendi 
+std_dev_df = pd.DataFrame(data=pop_std_dev, index=['Rutin', 'HedefOdagi', 'SorumlulukGorev', 'FirsatFayda',
+       'Aile', 'SosyalKontak', 'TakdirEdilme', 'GuvendeOlma', 'Aktiflik',
+       'Adalet', 'Analitik', 'SamimiOrtam', 'Takim', 'IknaEtme', 'StresIsYuku'], columns=['Population Standard Deviation'])
+
+means_df = pd.DataFrame(data=pop_mean, index=['Rutin', 'HedefOdagi', 'SorumlulukGorev', 'FirsatFayda',
+       'Aile', 'SosyalKontak', 'TakdirEdilme', 'GuvendeOlma', 'Aktiflik',
+       'Adalet', 'Analitik', 'SamimiOrtam', 'Takim', 'IknaEtme', 'StresIsYuku'], columns=['Population Means'])
+
+
+print(means_df)
+
+##Standart sapma ve ortalamar tek bir tabloda toplanıyor
+result = pd.concat([std_dev_df, means_df], axis=1, join="inner")
+print(result) 
+
+
+
+pivot = df_calisan.pivot_table(columns="Rutin", aggfunc="count")
+print(pivot)
+
+## Normalize edilmiş çalışan ve ayrılan değerleri ile histogram oluşturmak için
+df_calisan_weighted=[]
+for dugme in range(1,16):
+    for point in range(6,19):
+        tekrar = df_calisan.loc[dugme]==point
+        df_calisan_weighted.append(tekrar.count())
+        
+print(df_calisan)
+
+
+for dugme in range(1,16):
+   sns.distplot(df_calisan.iloc[:,dugme], color='blue')
+   plt.title("Sampling Distribution of Çalışan", fontsize=10)
+   plt.xlabel("sample mean", labelpad=14)
+   plt.ylabel("frequency of occurence", labelpad=14);
+   plt.show()
+
+
+##STANDARD ERROR BURAYI FOR LOOP ŞEKLİNDE YAPIP HER DÜĞME VE ÇALIŞMA DURUMU İÇİN DİNAMİK HALE GETİRMEM LAZIM
+
+standard_error_rutin_ayrilan = status_std_dev.iloc[0,0] / np.sqrt(len(df_ayrildi.index))   ##status_std_dev ilk index gerçek durum ikinci index düğmeler
+
+
+##Z-SCORE
+z_score = (status_means.iloc[0,0] - means_df.iloc[0,0])/standard_error_rutin_ayrilan
+print("Z-SCORE:", z_score)
+
+##MEAN RUTİN VALUE ASSOCIATED WITH THIS Z-SCORE
+sample_mean_at_positive_z_critical = 1.96*standard_error_rutin_ayrilan+means_df.iloc[0,0]
+
+sample_mean_at_negative_z_critical = -1.96*standard_error_rutin_ayrilan+means_df.iloc[0,0]
+
+print(sample_mean_at_positive_z_critical,sample_mean_at_negative_z_critical)
+
+
+
+print(df_ayrildi)
+
+kde = stats.gaussian_kde(df_ayrildi['Rutin'])
+pos = np.linspace(np.min(df_ayrildi['Rutin']), np.max(df_ayrildi['Rutin']), 10000)
+plt.plot(pos, kde(pos), color='blue')
+shade = np.linspace(sample_mean_at_positive_z_critical, 18, 300)
+plt.fill_between(shade, kde(shade), alpha=0.6, color='blue')
+shade2 = np.linspace(sample_mean_at_negative_z_critical, 0, 300)
+plt.fill_between(shade2, kde(shade2), alpha=0.6, color='blue')
+plt.axvline(x=status_means.iloc[0,0], linestyle='--', linewidth=2.5, label="sample mean Rutin-Ayrıldı", c='purple')
+plt.title("Sampling Distribution of Ayrılan Rutin", y=1.015, fontsize=10)
+plt.xlabel("Sample Rutin Ayrılan", labelpad=14)
+plt.ylabel("Probability of occurence", labelpad=14)
+plt.legend()
+plt.show()
+
+
+p_value = round(1-stats.norm.cdf(z_score), 3)
+print("P-VALUE:", p_value)
+
+
+if(p_value <  alpha):
+  print("Reject Null Hypothesis")
+else:
+  print("Fail to Reject NUll Hypothesis")
+  
+  
+ayrilan_fark = (status_means.iloc[0,0] - means_df.iloc[0,0])
+calisan_fark = (status_means.iloc[1,0] - means_df.iloc[0,0])
+
+
+print(means_df)
+print(status_means)
+print(ayrilan_fark, calisan_fark)
+
