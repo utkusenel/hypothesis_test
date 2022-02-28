@@ -12,10 +12,65 @@ from statsmodels.stats.weightstats import ztest
 import seaborn as sns
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+from matplotlib import pyplot
 
 df = pd.read_excel("/Users/utkusenel/Desktop/Practice(KFC)_UTKU.xlsx")
 print(df.head())
 print(df.columns)
+
+
+print(df.columns)
+
+one_hot = pd.get_dummies(df['GercekDurum'], 'GercekDurum')
+
+df['GD_0'] = one_hot.GercekDurum_0
+df['GD_1'] = one_hot.GercekDurum_1
+
+
+buttons = ['Rutin', 'HedefOdagi', 'SorumlulukGorev', 'FirsatFayda',
+       'Aile', 'SosyalKontak', 'TakdirEdilme', 'GuvendeOlma', 'Aktiflik',
+       'Adalet', 'Analitik', 'SamimiOrtam', 'Takim', 'IknaEtme', 'StresIsYuku']
+
+
+for idx, button in enumerate(buttons):
+    
+    
+    new_df = df[[button, 'GD_0', 'GD_1']].groupby(button).sum().reset_index()
+    new_df['Button'] = button
+    
+    
+    new_df.rename(columns = {button:'Points'}, inplace = True)
+    
+    total_GD_0 = new_df.GD_0.sum()
+    total_GD_1 = new_df.GD_1.sum()
+    
+    new_df['Weighted_GD_0'] = new_df.GD_0 / total_GD_0
+    new_df['Weighted_GD_1'] = new_df.GD_1 / total_GD_1
+    
+    
+    if idx==0:
+        final_df=new_df.copy()
+    else:
+        final_df = pd.concat([final_df, new_df])
+    
+
+    tst = final_df[final_df.Button == button][['Points', 'Weighted_GD_0', 'Weighted_GD_1', 'Button']]
+
+
+    tst[tst.Button == button][['Weighted_GD_0', 'Weighted_GD_1']]
+
+    plt.bar(tst.Points, tst[tst.Button == button]['Weighted_GD_0'], alpha=0.8)
+    plt.bar(tst.Points, tst[tst.Button == button]['Weighted_GD_1'], alpha=0.8)
+    plt.title("Histogram for {}".format(button))
+    plt.show()
+    
+    
+    
+    
+
+
+
+print(df[['StresIsYuku','GD_0', 'GD_1']])
 
 
 pop_mean = []     # Bütün verinin ortalamalarının toplandığı yer
@@ -28,7 +83,7 @@ df_calisan = df[df.GercekDurum.eq(1)]   ## Çalışanların düğme puanları
 
 df_ayrildi = df[df.GercekDurum.eq(0)]   ## Ayrılanların düğme puanları
 
-
+print(df_calisan)
 
 df_ayrildi.drop(['AdSoyad', 'GercekDurum'], axis=1, inplace=True)    ## Ad Soyad ve Gerçek Durum sütunlarını düşürmek amaçlı
 
