@@ -12,111 +12,50 @@ from statsmodels.stats.weightstats import ztest
 import seaborn as sns
 import scipy.stats as stats
 import matplotlib.pyplot as plt
-from matplotlib import pyplot
 
 df = pd.read_excel("/Users/utkusenel/Desktop/Practice(KFC)_UTKU.xlsx")
 print(df.head())
 print(df.columns)
 
 
-print(df.columns)
-
-one_hot = pd.get_dummies(df['GercekDurum'], 'GercekDurum')
-
-df['GD_0'] = one_hot.GercekDurum_0
-df['GD_1'] = one_hot.GercekDurum_1
+pop_mean = []
+pop_std_dev = []
+pop_sample_size = len(df.index)
+alpha = 0.05
 
 
-buttons = ['Rutin', 'HedefOdagi', 'SorumlulukGorev', 'FirsatFayda',
-       'Aile', 'SosyalKontak', 'TakdirEdilme', 'GuvendeOlma', 'Aktiflik',
-       'Adalet', 'Analitik', 'SamimiOrtam', 'Takim', 'IknaEtme', 'StresIsYuku']
+df_calisan = df[df.GercekDurum.eq(1)]
 
+df_ayrildi = df[df.GercekDurum.eq(0)]
 
-for idx, button in enumerate(buttons):
-    
-    
-    new_df = df[[button, 'GD_0', 'GD_1']].groupby(button).sum().reset_index()
-    new_df['Button'] = button
-    
-    
-    new_df.rename(columns = {button:'Points'}, inplace = True)
-    
-    total_GD_0 = new_df.GD_0.sum()
-    total_GD_1 = new_df.GD_1.sum()
-    
-    new_df['Weighted_GD_0'] = new_df.GD_0 / total_GD_0
-    new_df['Weighted_GD_1'] = new_df.GD_1 / total_GD_1
-    
-    
-    if idx==0:
-        final_df=new_df.copy()
-    else:
-        final_df = pd.concat([final_df, new_df])
-    
-
-    tst = final_df[final_df.Button == button][['Points', 'Weighted_GD_0', 'Weighted_GD_1', 'Button']]
-
-
-    tst[tst.Button == button][['Weighted_GD_0', 'Weighted_GD_1']]
-
-    plt.bar(tst.Points, tst[tst.Button == button]['Weighted_GD_0'], alpha=0.8)
-    plt.bar(tst.Points, tst[tst.Button == button]['Weighted_GD_1'], alpha=0.8)
-    plt.title("Histogram for {}".format(button))
-    plt.show()
-    
-    
-    
-    
-
-
-
-print(df[['StresIsYuku','GD_0', 'GD_1']])
-
-
-pop_mean = []     # Bütün verinin ortalamalarının toplandığı yer
-pop_std_dev = []  # Bütün verinin standart sapmalarının toplandığı yer
-pop_sample_size = len(df.index)   # Bütün verinin uzunluğu
-alpha = 0.05  ## Confidence interval 
-
-
-df_calisan = df[df.GercekDurum.eq(1)]   ## Çalışanların düğme puanları
-
-df_ayrildi = df[df.GercekDurum.eq(0)]   ## Ayrılanların düğme puanları
-
-print(df_calisan)
-
-df_ayrildi.drop(['AdSoyad', 'GercekDurum'], axis=1, inplace=True)    ## Ad Soyad ve Gerçek Durum sütunlarını düşürmek amaçlı
-
+df_ayrildi.drop(['AdSoyad', 'GercekDurum'], axis=1, inplace=True)
+print(df_ayrildi.head())
 
 df_calisan.drop(['AdSoyad', 'GercekDurum'], axis=1, inplace=True)
 
 
 
 ## CALCULATING MEANS AND STD DEVS OF GERCEKDURUM
-status_means = df.groupby(by="GercekDurum").mean()  ## Ayrılan ve çalışanların tüm düğmeler için ortalama puanları
+status_means = df.groupby(by="GercekDurum").mean()
 status_means = pd.DataFrame(status_means)
 print(status_means)
 
-status_std_dev = df.groupby(by="GercekDurum").std()   ## Ayrılan ve çalışanların tüm düğmeler için standart sapmaları 
+status_std_dev = df.groupby(by="GercekDurum").std()
 status_std_dev = pd.DataFrame(status_std_dev)
 print(status_std_dev)
 
 
 
 
-## Bütün verinin tüm düğmeler için ortalama ve standart sapmaları  
-for columns in range(1,16):  
-      df_mean = df.iloc[:,columns].mean()
-      df_std = df.iloc[:,columns].std()
-      pop_mean.append(df_mean)
-      pop_std_dev.append(df_std)
- 
-
-
+## CALCULATING MEANS AND STD DEVS
+for columns in range(1,16):
+     df_mean = df.iloc[:,columns].mean()
+     df_std = df.iloc[:,columns].std()
+     pop_mean.append(df_mean)
+     pop_std_dev.append(df_std)
      
-print(pop_mean)     
      
-## Yukarıda hesaplanan ortalama ve standart sapma değerlerinin olduğu arrayler Dataframe çevrildi ve sütun isimleri eklendi 
+## TRANSFORMING ARRAYS INTO DATAFRAMES    
 std_dev_df = pd.DataFrame(data=pop_std_dev, index=['Rutin', 'HedefOdagi', 'SorumlulukGorev', 'FirsatFayda',
        'Aile', 'SosyalKontak', 'TakdirEdilme', 'GuvendeOlma', 'Aktiflik',
        'Adalet', 'Analitik', 'SamimiOrtam', 'Takim', 'IknaEtme', 'StresIsYuku'], columns=['Population Standard Deviation'])
@@ -126,39 +65,23 @@ means_df = pd.DataFrame(data=pop_mean, index=['Rutin', 'HedefOdagi', 'Sorumluluk
        'Adalet', 'Analitik', 'SamimiOrtam', 'Takim', 'IknaEtme', 'StresIsYuku'], columns=['Population Means'])
 
 
-print(means_df)
-
-##Standart sapma ve ortalamar tek bir tabloda toplanıyor
+##MERGING TWO DIFFERENT DATAFRAMES
 result = pd.concat([std_dev_df, means_df], axis=1, join="inner")
-print(result) 
+print(means_df.iloc[0,0])
 
 
+sns.distplot(df_calisan.iloc[:,0], color='darkviolet')
+plt.title("Sampling Distribution of Ayrılan Rutin", fontsize=10)
+plt.xlabel("sample mean for Rutin", labelpad=14)
+plt.ylabel("frequency of occurence", labelpad=14);
 
-pivot = df_calisan.pivot_table(columns="Rutin", aggfunc="count")
-print(pivot)
-
-## Normalize edilmiş çalışan ve ayrılan değerleri ile histogram oluşturmak için
-df_calisan_weighted=[]
-for dugme in range(1,16):
-    for point in range(6,19):
-        tekrar = df_calisan.loc[dugme]==point
-        df_calisan_weighted.append(tekrar.count())
-        
-print(df_calisan)
+plt.show()
 
 
-for dugme in range(1,16):
-   sns.distplot(df_calisan.iloc[:,dugme], color='blue')
-   plt.title("Sampling Distribution of Çalışan", fontsize=10)
-   plt.xlabel("sample mean", labelpad=14)
-   plt.ylabel("frequency of occurence", labelpad=14);
-   plt.show()
+##STANDARD ERROR
+standard_error_rutin_ayrilan = status_std_dev.iloc[0,0] / np.sqrt(len(df_ayrildi.index))
 
-
-##STANDARD ERROR BURAYI FOR LOOP ŞEKLİNDE YAPIP HER DÜĞME VE ÇALIŞMA DURUMU İÇİN DİNAMİK HALE GETİRMEM LAZIM
-
-standard_error_rutin_ayrilan = status_std_dev.iloc[0,0] / np.sqrt(len(df_ayrildi.index))   ##status_std_dev ilk index gerçek durum ikinci index düğmeler
-
+print(means_df.iloc[0,0])
 
 ##Z-SCORE
 z_score = (status_means.iloc[0,0] - means_df.iloc[0,0])/standard_error_rutin_ayrilan
@@ -177,11 +100,11 @@ print(df_ayrildi)
 
 kde = stats.gaussian_kde(df_ayrildi['Rutin'])
 pos = np.linspace(np.min(df_ayrildi['Rutin']), np.max(df_ayrildi['Rutin']), 10000)
-plt.plot(pos, kde(pos), color='blue')
+plt.plot(pos, kde(pos), color='darkviolet')
 shade = np.linspace(sample_mean_at_positive_z_critical, 18, 300)
-plt.fill_between(shade, kde(shade), alpha=0.6, color='blue')
+plt.fill_between(shade, kde(shade), alpha=0.6, color='darkviolet')
 shade2 = np.linspace(sample_mean_at_negative_z_critical, 0, 300)
-plt.fill_between(shade2, kde(shade2), alpha=0.6, color='blue')
+plt.fill_between(shade2, kde(shade2), alpha=0.6, color='darkviolet')
 plt.axvline(x=status_means.iloc[0,0], linestyle='--', linewidth=2.5, label="sample mean Rutin-Ayrıldı", c='purple')
 plt.title("Sampling Distribution of Ayrılan Rutin", y=1.015, fontsize=10)
 plt.xlabel("Sample Rutin Ayrılan", labelpad=14)
@@ -193,18 +116,8 @@ plt.show()
 p_value = round(1-stats.norm.cdf(z_score), 3)
 print("P-VALUE:", p_value)
 
-
+  
 if(p_value <  alpha):
   print("Reject Null Hypothesis")
 else:
   print("Fail to Reject NUll Hypothesis")
-  
-  
-ayrilan_fark = (status_means.iloc[0,0] - means_df.iloc[0,0])
-calisan_fark = (status_means.iloc[1,0] - means_df.iloc[0,0])
-
-
-print(means_df)
-print(status_means)
-print(ayrilan_fark, calisan_fark)
-
