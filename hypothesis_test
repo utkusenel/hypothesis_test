@@ -73,14 +73,11 @@ for idx, button in enumerate(buttons):
     plt.title("Histogram for {}".format(button))
     plt.show()
     
-final_df   
-tst
+
 means = final_df.groupby(by = "Button")[['Weighted_GD_0', 'Weighted_GD_1']].mean().reset_index()
 std_dev = final_df.groupby(by = "Button")[['Weighted_GD_0', 'Weighted_GD_1']].std().reset_index()
 medians = final_df.groupby(by = "Button")[['Weighted_GD_0', 'Weighted_GD_1']].median().reset_index()
-means
-std_dev
-medians
+
 
 
 standard_error_calisan = std_dev['Weighted_GD_1']/ np.sqrt(len(df[df.GercekDurum.eq(1)]))   
@@ -116,7 +113,7 @@ p_value_calisan['Buttons'] = buttons
 print(p_value_calisan[0])
 print(p_value_ayrilan)
 
-
+"""
 for p in range(0,15):
     
     if(p_value_calisan.iloc[0,p] <  alpha):
@@ -128,7 +125,7 @@ for p in range(0,15):
         print("Reject Null Hypothesis") 
     else:
         print("Fail to Reject NUll Hypothesis")
-
+"""
 
 
 
